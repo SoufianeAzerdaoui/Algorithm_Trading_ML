@@ -13,4 +13,5 @@ Thumbs.db
 # Ignore large datasets
 Data Historical/
 
-Project Notes.odt/
+# Ignore specific file
+Project Notes.odt

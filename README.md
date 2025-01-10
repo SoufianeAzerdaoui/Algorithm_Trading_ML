@@ -9,7 +9,7 @@ This project explores the application of machine learning models for predicting 
 ## Data Collection
 
 - Historical stock price data for a selected set of BIST100 stocks was gathered from [Yahoo Finance](https://finance.yahoo.com).
-- The dataset spans from **May 21, 2022**, to **December 13, 2023**.
+- The dataset spans from **Jan 1, 1970**, to **December 13, 2023**.
 
 ---
 

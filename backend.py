@@ -22,26 +22,28 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-
 # Endpoint to run the pipeline
 def execute_pipeline():
     try:
+        # Define the correct absolute paths
+        notebook_dir = "C:/Users/PC/Desktop/ml_project/Algorithm_Trading_ML/"
+
         print("Running notebook: Fetch Data")
         pm.execute_notebook(
-            'get_any_data_from_finance_yahoo.ipynb',
-            'output_get_any_data_from_finance_yahoo.ipynb'
+            os.path.join(notebook_dir, 'get_any_data_from_finance_yahoo.ipynb'),
+            os.path.join(notebook_dir, 'output_get_any_data_from_finance_yahoo.ipynb')
         )
         
         print("Running notebook: Preprocess Data")
         pm.execute_notebook(
-            'DataProprecessing.ipynb',
-            'output_DataProprecessing.ipynb'
+            os.path.join(notebook_dir, 'DataProprecessing.ipynb'),
+            os.path.join(notebook_dir, 'output_DataProprecessing.ipynb')
         )
         
         print("Running notebook: Train and Evaluate Models")
         pm.execute_notebook(
-            'Models.ipynb',
-            'output_Models.ipynb'
+            os.path.join(notebook_dir, 'Models.ipynb'),
+            os.path.join(notebook_dir, 'output_Models.ipynb')
         )
         
         print("Pipeline execution completed successfully.")
@@ -69,6 +71,7 @@ async def predict(file: UploadFile = File(...)):
         # Check if predictions file exists
         predictions_path = "data/final_predictions.csv"
         if not os.path.exists(predictions_path):
+            print("Prediction file not found:", os.path.abspath(predictions_path))
             return JSONResponse(status_code=404, content={"error": "Prediction file not found."})
 
         # Read and return predictions
@@ -81,4 +84,4 @@ async def predict(file: UploadFile = File(...)):
 # Run the app
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8002)

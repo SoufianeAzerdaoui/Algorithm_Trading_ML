@@ -5,7 +5,7 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  TimeScale, // Add TimeScale for time-based axis
+  TimeScale,
   PointElement,
   LineElement,
   BarElement,
@@ -16,13 +16,13 @@ import {
 } from "chart.js";
 import "chartjs-chart-financial";
 import { CandlestickController, CandlestickElement } from "chartjs-chart-financial";
-import 'chartjs-adapter-date-fns'; // Add date adapter for time-based axis
+import 'chartjs-adapter-date-fns';
 
 // Register necessary chart controllers and components
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  TimeScale, // Register TimeScale
+  TimeScale,
   PointElement,
   LineElement,
   BarElement,
@@ -85,6 +85,15 @@ const ChartContainer = styled.div`
   margin-top: 20px;
 `;
 
+const DecisionLabel = styled.span`
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: bold;
+  color: white;
+  background-color: ${(props) => (props.decision === "BUY" ? "#4CAF50" : "#FF5252")};
+`;
+
 function App() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -130,60 +139,71 @@ function App() {
 
   useEffect(() => {
     if (predictions.length > 0 && chartRef.current) {
-      // Destroy previous chart if it exists
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
-
+  
       const ctx = chartRef.current.getContext("2d");
-
-      // Generate OHLC data from actual_price
-      const ohlcData = predictions.map((pred, index) => {
-        const open = index === 0 ? pred.actual_price : predictions[index - 1].actual_price;
-        const close = pred.actual_price;
-        const high = Math.max(open, close) + Math.random() * 0.02; // Add small variation
-        const low = Math.min(open, close) - Math.random() * 0.02;
-
-        return {
-          ...pred,
-          open: open.toFixed(2),
-          high: high.toFixed(2),
-          low: low.toFixed(2),
-          close: close.toFixed(2),
-        };
-      });
-
-      // Candlestick chart configuration
-      const candlestickData = {
-        labels: ohlcData.map((d) => d.date),
+  
+      const priceData = predictions.map((pred) => ({
+        x: new Date(pred.date),
+        y: parseFloat(pred.close),
+      }));
+  
+      const buySignals = predictions
+        .filter((pred) => pred.decision === "BUY")
+        .map((pred) => ({
+          x: new Date(pred.date),
+          y: parseFloat(pred.close),
+        }));
+  
+      const sellSignals = predictions
+        .filter((pred) => pred.decision === "SELL")
+        .map((pred) => ({
+          x: new Date(pred.date),
+          y: parseFloat(pred.close),
+        }));
+  
+      const chartData = {
         datasets: [
           {
             label: "Stock Price",
-            data: ohlcData.map((d) => ({
-              x: d.date,
-              o: parseFloat(d.open),
-              h: parseFloat(d.high),
-              l: parseFloat(d.low),
-              c: parseFloat(d.close),
-            })),
-            color: {
-              up: "#4CAF50",
-              down: "#FF5252",
-              unchanged: "#999",
-            },
+            data: priceData,
+            borderColor: "#007bff",
+            backgroundColor: "rgba(0, 123, 255, 0.5)",
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+          },
+          {
+            label: "BUY Signal",
+            data: buySignals,
+            borderColor: "green",
+            backgroundColor: "green",
+            pointStyle: "triangle",
+            pointRadius: 6,
+            pointRotation: 180,
+          },
+          {
+            label: "SELL Signal",
+            data: sellSignals,
+            borderColor: "red",
+            backgroundColor: "red",
+            pointStyle: "triangle",
+            pointRadius: 6,
           },
         ],
       };
-
+  
       const options = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: {
-            type: "time", // Use 'time' scale for time-based axis
+            type: "time",
             time: {
               unit: "day",
-              tooltipFormat: "YYYY-MM-DD",
+              tooltipFormat: "yyyy-MM-dd",
             },
             title: {
               display: true,
@@ -197,37 +217,16 @@ function App() {
             },
           },
         },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const data = ctx.raw;
-                return [
-                  `Open: ${data.o.toFixed(2)}`,
-                  `High: ${data.h.toFixed(2)}`,
-                  `Low: ${data.l.toFixed(2)}`,
-                  `Close: ${data.c.toFixed(2)}`,
-                ];
-              },
-            },
-          },
-        },
       };
-
+  
       chartInstance.current = new ChartJS(ctx, {
-        type: "candlestick",
-        data: candlestickData,
+        type: "line",
+        data: chartData,
         options: options,
       });
     }
-
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-    };
   }, [predictions]);
-
+  
   return (
     <Container>
       <h1>📈 Stock Prediction System</h1>
@@ -236,38 +235,13 @@ function App() {
       <UploadButton onClick={handleUpload} disabled={loading}>
         {loading ? "Processing..." : "Upload and Predict"}
       </UploadButton>
-
       {message && <p>{message}</p>}
-
       {predictions.length > 0 && (
         <>
           <h2>📊 Prediction Results</h2>
           <ChartContainer>
             <canvas ref={chartRef}></canvas>
           </ChartContainer>
-          <h3 style={{ marginTop: "30px" }}>Prediction Details</h3>
-          <div style={{ overflowX: "auto", marginTop: "20px" }}>
-            <table style={{ width: "100%", textAlign: "left", border: "1px solid #ddd" }}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Actual Price</th>
-                  <th>Predicted Price</th>
-                  <th>Decision</th>
-                </tr>
-              </thead>
-              <tbody>
-                {predictions.map((item, index) => (
-                  <tr key={index}>
-                    <td>{item.date}</td>
-                    <td>{item.actual_price}</td>
-                    <td>{item.predicted_price}</td>
-                    <td>{item.decision}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </>
       )}
     </Container>
